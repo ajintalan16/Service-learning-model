@@ -1,40 +1,38 @@
-import tkinter as tk
-from tkinter import filedialog
-from PIL import Image, ImageOps
-import numpy as np
 import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import numpy as np
+import os
 
-def load_model(model_path):
-    return tf.keras.models.load_model(model_path)
-
-def select_image():
-    file_path = filedialog.askopenfilename()
-    if file_path:
-        img = Image.open(file_path)
-        img = ImageOps.fit(img, (img_height, img_width), Image.ANTIALIAS)
-        img_array = np.array(img) / 255.0
-        img_array = img_array.reshape((1, img_height, img_width, 3))
-        prediction = model.predict(img_array)
-        label.config(text=str(prediction))
-
-# Load your model
-model_path = 'custom_cnn_model_simplified.keras'  # Update with your model's filename
+# Load the trained model
+model_path = 'custom_cnn_model_improved_v3.keras'
 model = load_model(model_path)
+print(f"Loaded model from {model_path}")
 
-# Image dimensions (should be the same as used during training)
+# Directory containing images to be classified
+images_dir = r'C:\Users\Aron Jintalan\Desktop\Service Learning Dataset\Test\Sambong'
+print(f"Looking for images in {images_dir}")
+
+# Image dimensions
 img_height, img_width = 224, 224
 
-# Create the main window
-root = tk.Tk()
-root.title("Image Classifier")
+# Dictionary to label all plant classes.
+labels = {0: 'sambong', 1: 'akapulko', 2: 'lagundi'}
 
-# Create a button to select an image
-button = tk.Button(root, text="Select an Image", command=select_image)
-button.pack()
+# Function to prepare an image for classification
+def prepare_image(file):
+    img = image.load_img(file, target_size=(img_height, img_width))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)  # Create a batch
+    img_array /= 255.  # Scale image values
+    return img_array
 
-# Label to show the classification results
-label = tk.Label(root, text="Classification results appear here")
-label.pack()
-
-# Run the application
-root.mainloop()
+# Iterate over images in the directory
+for img_file in os.listdir(images_dir):
+    img_path = os.path.join(images_dir, img_file)
+    if img_path.lower().endswith((".png", ".jpg", ".jpeg", ".jpg")):  # Check for image files
+        print(f"Processing image: {img_path}")
+        img_prepared = prepare_image(img_path)
+        prediction = model.predict(img_prepared)
+        predicted_class = labels[np.argmax(prediction)]
+        print(f"Image {img_file} is predicted as {predicted_class} with confidence {np.max(prediction)}")
